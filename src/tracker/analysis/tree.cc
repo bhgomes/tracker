@@ -64,8 +64,10 @@ struct tree::impl {
   ~impl() = default;
 
   impl& operator=(const impl& other) {
-    if (this != &other)
+    if (this != &other) {
       _tree = to_tree(other._tree->CloneTree());
+      _file = other._file;
+    }
     return *this;
   }
   impl& operator=(impl&& other) noexcept = default;
@@ -239,9 +241,8 @@ void tree::set_directory(const std::string& path, const std::string& name) {
 //__Set Fire for Tree___________________________________________________________________________
 void tree::set_file(const std::string& path, const std::string& mode) {
   auto file = TFile::Open(path.c_str(), mode.c_str());
-  file->Close();
-  // file->cd();
-  set_directory(path);
+  file->cd();
+  _impl->set_file(file);
 }
 //----------------------------------------------------------------------------------------------
 
