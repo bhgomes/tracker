@@ -159,11 +159,11 @@ bool _fit_event_minuit(const full_event& points,
   }
 
   if (points.size() == 2UL) {
-    if (execute(minuit, _timeless_gaussian_nll_two_hit_track) == error::diverged)
+    if (execute(minuit, _gaussian_nll_two_hit_track) == error::diverged)
       return false;
   } else {
     set_parameters(minuit, 6UL, "VZ", vz);
-    if (execute(minuit, _timeless_gaussian_nll) == error::diverged)
+    if (execute(minuit, _gaussian_nll) == error::diverged)
       return false;
     get_parameters(minuit, 6UL, vz);
   }

@@ -228,10 +228,12 @@ public:
 
   canvas() = default;
   canvas(const std::string& name,
+         const bool hidden=true,
          const std::size_t width=default_width,
          const std::size_t height=default_height);
   canvas(const std::string& name,
          const std::string& title,
+         const bool hidden=true,
          const std::size_t width=default_width,
          const std::size_t height=default_height);
   canvas(canvas&& other) noexcept = default;
@@ -329,6 +331,9 @@ public:
 
   void draw();
   void clear();
+
+  bool hide(bool hidden);
+  bool is_hidden() const;
 
   bool save(const std::string& path) const;
 

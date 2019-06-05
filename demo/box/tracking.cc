@@ -149,7 +149,9 @@ void track_event_bundle(const script::path_vector& paths,
       canvas_title.insert(canvas_title.cend(), path.begin(), path.end());
     }
 
-    plot::canvas canvas("event" + event_counter_string, canvas_title + " | " + event_counter_string);
+    plot::canvas canvas("event" + event_counter_string,
+                        canvas_title + " | " + event_counter_string,
+                        !options.verbose_output);
     if (options.draw_events) {
       box::io::draw_detector(canvas, extension.layer_count);
       box::io::draw_mc_tracks(canvas, mc::convert_events(mc_imported_events[event_counter]));

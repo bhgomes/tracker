@@ -93,18 +93,23 @@ struct canvas::impl {
   std::vector<TPolyLine3D*> _poly_lines;
   _style_point_map _polymarker_map;
   bool _has_updated = false;
+  bool _hidden = true;
 
-  void reset_view() {
-    _view = dynamic_cast<TView3D*>(TView::CreateView());
-    _view->SetAutoRange(true);
+  void reset_view(bool hidden=false) {
+    if (!hidden) {
+      _view = dynamic_cast<TView3D*>(TView::CreateView());
+      _view->SetAutoRange(true);
+    }
   }
 
-  impl(const std::string& name,
+  impl(const bool hidden,
+       const std::string& name,
        const std::string& title,
        const size_t width,
        const size_t height)
-      : _canvas(new TCanvas(name.c_str(), title.c_str(), width, height)) {
-    reset_view();
+      : _canvas(hidden ? new TCanvas(name.c_str(), title.c_str(), width, height) : nullptr),
+        _hidden(hidden) {
+    reset_view(hidden);
   }
 
   impl(const impl& other) = default;
@@ -117,17 +122,19 @@ struct canvas::impl {
 
 //__Canvas Constructor__________________________________________________________________________
 canvas::canvas(const std::string& name,
+               const bool hidden,
                const size_t width,
                const size_t height)
-    : canvas(name, name, width, height) {}
+    : canvas(name, name, hidden, width, height) {}
 //----------------------------------------------------------------------------------------------
 
 //__Canvas Constructor__________________________________________________________________________
 canvas::canvas(const std::string& name,
                const std::string& title,
+               const bool hidden,
                const size_t width,
                const size_t height)
-    : _impl(std::make_unique<impl>(name, title, width, height)) {}
+    : _impl(std::make_unique<impl>(hidden, name, title, width, height)) {}
 //----------------------------------------------------------------------------------------------
 
 //__Canvas Destructor___________________________________________________________________________
@@ -203,7 +210,8 @@ void canvas::add_point(const real x,
                        const real z,
                        const real size,
                        const color& color) {
-  _impl->_polymarker_map.insert({{color, size}, r3_point{x, y, z} / units::length});
+  if (!is_hidden())
+    _impl->_polymarker_map.insert({{color, size}, r3_point{x, y, z} / units::length});
 }
 //----------------------------------------------------------------------------------------------
 
@@ -227,8 +235,9 @@ void canvas::add_point(const r4_point& point,
 void canvas::add_points(const r4_point_vector& points,
                         const real width,
                         const color& color) {
-  for (const auto& point : points)
-    add_point(point, width, color);
+  if (!is_hidden())
+    for (const auto& point : points)
+      add_point(point, width, color);
 }
 //----------------------------------------------------------------------------------------------
 
@@ -241,14 +250,16 @@ void canvas::add_line(const real x1,
                       const real z2,
                       const real width,
                       const color& color) {
-  _impl->_canvas->cd();
-  auto& lines = _impl->_poly_lines;
-  lines.push_back(new TPolyLine3D);
-  auto& line = lines.back();
-  line->SetNextPoint(x1 / units::length, y1 / units::length, z1 / units::length);
-  line->SetNextPoint(x2 / units::length, y2 / units::length, z2 / units::length);
-  line->SetLineWidth(width);
-  line->SetLineColor(_to_TColor_id(color));
+  if (!is_hidden()) {
+    _impl->_canvas->cd();
+    auto& lines = _impl->_poly_lines;
+    lines.push_back(new TPolyLine3D);
+    auto& line = lines.back();
+    line->SetNextPoint(x1 / units::length, y1 / units::length, z1 / units::length);
+    line->SetNextPoint(x2 / units::length, y2 / units::length, z2 / units::length);
+    line->SetLineWidth(width);
+    line->SetLineColor(_to_TColor_id(color));
+  }
 }
 //----------------------------------------------------------------------------------------------
 
@@ -274,8 +285,9 @@ void canvas::add_line(const r4_point& first,
 void canvas::add_polyline(const r4_point_vector& points,
                           const real width,
                           const color& color) {
-  for (const auto& point : points)
-    add_point(point, width, color);
+  if (!is_hidden())
+    for (const auto& point : points)
+      add_point(point, width, color);
 }
 //----------------------------------------------------------------------------------------------
 
@@ -288,18 +300,20 @@ void canvas::add_box(const real min_x,
                      const real max_z,
                      const real width,
                      const color& color) {
-  add_line(min_x, min_y, min_z, max_x, min_y, min_z, width, color);
-  add_line(min_x, max_y, min_z, max_x, max_y, min_z, width, color);
-  add_line(min_x, min_y, max_z, max_x, min_y, max_z, width, color);
-  add_line(min_x, max_y, max_z, max_x, max_y, max_z, width, color);
-  add_line(min_x, min_y, min_z, min_x, max_y, min_z, width, color);
-  add_line(max_x, min_y, min_z, max_x, max_y, min_z, width, color);
-  add_line(min_x, min_y, max_z, min_x, max_y, max_z, width, color);
-  add_line(max_x, min_y, max_z, max_x, max_y, max_z, width, color);
-  add_line(min_x, min_y, min_z, min_x, min_y, max_z, width, color);
-  add_line(max_x, min_y, min_z, max_x, min_y, max_z, width, color);
-  add_line(min_x, max_y, min_z, min_x, max_y, max_z, width, color);
-  add_line(max_x, max_y, min_z, max_x, max_y, max_z, width, color);
+  if (!is_hidden()) {
+    add_line(min_x, min_y, min_z, max_x, min_y, min_z, width, color);
+    add_line(min_x, max_y, min_z, max_x, max_y, min_z, width, color);
+    add_line(min_x, min_y, max_z, max_x, min_y, max_z, width, color);
+    add_line(min_x, max_y, max_z, max_x, max_y, max_z, width, color);
+    add_line(min_x, min_y, min_z, min_x, max_y, min_z, width, color);
+    add_line(max_x, min_y, min_z, max_x, max_y, min_z, width, color);
+    add_line(min_x, min_y, max_z, min_x, max_y, max_z, width, color);
+    add_line(max_x, min_y, max_z, max_x, max_y, max_z, width, color);
+    add_line(min_x, min_y, min_z, min_x, min_y, max_z, width, color);
+    add_line(max_x, min_y, min_z, max_x, min_y, max_z, width, color);
+    add_line(min_x, max_y, min_z, min_x, max_y, max_z, width, color);
+    add_line(max_x, max_y, min_z, max_x, max_y, max_z, width, color);
+  }
 }
 //----------------------------------------------------------------------------------------------
 
@@ -346,61 +360,76 @@ void canvas::add_box(const r4_point& center,
 
 //__Draw Canvas_________________________________________________________________________________
 void canvas::draw() {
-  _impl->_canvas->cd();
-
-  const auto& marker_map = _impl->_polymarker_map;
-  const auto marker_map_size = marker_map.bucket_count();
-  for (size_t i = 0; i < marker_map_size; ++i) {
-    auto polymarker = new TPolyMarker3D(marker_map.bucket_size(i), 20);
-    const auto& begin = marker_map.cbegin(i);
-    const auto& end = marker_map.cend(i);
-    std::for_each(begin, end, [&](const auto& entry) {
-      const auto& point = entry.second;
-      polymarker->SetNextPoint(point.x, point.y, point.z);
-    });
-    if (begin != end) {
-      const auto& style = (*begin).first;
-      polymarker->SetMarkerSize(style.size);
-      polymarker->SetMarkerColor(_to_TColor_id(style.rgb));
-      polymarker->Draw();
-    }
-  }
-
-  for (const auto& poly_line : _impl->_poly_lines)
-    poly_line->Draw();
-
-  if (!_impl->_has_updated) {
-    _impl->_view->ShowAxis();
+  if (!is_hidden()) {
     _impl->_canvas->cd();
-    auto axis = TAxis3D::GetPadAxis();
-    if (axis) {
-      axis->SetLabelColor(kBlack);
-      axis->SetAxisColor(kBlack);
-      axis->SetTitleOffset(2);
-      axis->SetXTitle(("X (" + units::length_string + ")").c_str());
-      axis->SetYTitle(("Y (" + units::length_string + ")").c_str());
-      axis->SetZTitle(("Z (" + units::length_string + ")").c_str());
-    }
-  }
 
-  _impl->_canvas->Modified();
-  _impl->_canvas->Update();
-  _impl->_has_updated = true;
+    const auto& marker_map = _impl->_polymarker_map;
+    const auto marker_map_size = marker_map.bucket_count();
+    for (size_t i = 0; i < marker_map_size; ++i) {
+      auto polymarker = new TPolyMarker3D(marker_map.bucket_size(i), 20);
+      const auto& begin = marker_map.cbegin(i);
+      const auto& end = marker_map.cend(i);
+      std::for_each(begin, end, [&](const auto& entry) {
+        const auto& point = entry.second;
+        polymarker->SetNextPoint(point.x, point.y, point.z);
+      });
+      if (begin != end) {
+        const auto& style = (*begin).first;
+        polymarker->SetMarkerSize(style.size);
+        polymarker->SetMarkerColor(_to_TColor_id(style.rgb));
+        polymarker->Draw();
+      }
+    }
+
+    for (const auto& poly_line : _impl->_poly_lines)
+      poly_line->Draw();
+
+    if (!_impl->_has_updated) {
+      _impl->_view->ShowAxis();
+      _impl->_canvas->cd();
+      auto axis = TAxis3D::GetPadAxis();
+      if (axis) {
+        axis->SetLabelColor(kBlack);
+        axis->SetAxisColor(kBlack);
+        axis->SetTitleOffset(2);
+        axis->SetXTitle(("X (" + units::length_string + ")").c_str());
+        axis->SetYTitle(("Y (" + units::length_string + ")").c_str());
+        axis->SetZTitle(("Z (" + units::length_string + ")").c_str());
+      }
+    }
+
+    _impl->_canvas->Modified();
+    _impl->_canvas->Update();
+    _impl->_has_updated = true;
+  }
 }
 //----------------------------------------------------------------------------------------------
 
 //__Clear A Canvas______________________________________________________________________________
 void canvas::clear() {
-  if (_impl->_has_updated) {
+  if (_impl->_has_updated && !is_hidden()) {
     _impl->_canvas->cd();
     _impl->_canvas->Clear();
     _impl->_canvas->Modified();
     _impl->_canvas->Update();
-    _impl->reset_view();
+    _impl->reset_view(is_hidden());
     _impl->_polymarker_map.clear();
     _impl->_poly_lines.clear();
     _impl->_has_updated = false;
   }
+}
+//----------------------------------------------------------------------------------------------
+
+//__Hide Canvas_________________________________________________________________________________
+bool canvas::hide(bool hidden) {
+  _impl->_hidden = hidden;
+  return hidden;
+}
+//----------------------------------------------------------------------------------------------
+
+//__Check if Canvas is Hidden___________________________________________________________________
+bool canvas::is_hidden() const {
+  return _impl->_hidden;
 }
 //----------------------------------------------------------------------------------------------
 
