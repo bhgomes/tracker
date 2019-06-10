@@ -107,7 +107,7 @@ struct canvas::impl {
        const std::string& title,
        const size_t width,
        const size_t height)
-      : _canvas(hidden ? new TCanvas(name.c_str(), title.c_str(), width, height) : nullptr),
+      : _canvas(!hidden ? new TCanvas(name.c_str(), title.c_str(), width, height) : nullptr),
         _hidden(hidden) {
     reset_view(hidden);
   }
