@@ -61,7 +61,10 @@ struct tree::impl {
        const std::string& title) : _tree(new TTreeType(name.c_str(), title.c_str())) {}
   impl(const impl& other) : _tree(to_tree(other._tree->CloneTree())) {}
   impl(impl&& other) noexcept = default;
-  ~impl() = default;
+  ~impl() {
+    if (_file)
+      _file->Close();
+  }
 
   impl& operator=(const impl& other) {
     if (this != &other) {
